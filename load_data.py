@@ -1,5 +1,6 @@
 """
-Carga lista_maestra.xlsx (estructura simple) + existencias.csv a PostgreSQL.
+Carga lista_maestra.xlsx + existencias.csv a PostgreSQL.
+Ignora SKUs duplicados.
 """
 import os
 import pandas as pd
@@ -20,15 +21,15 @@ def main():
     df_m["SKU"] = df_m["SKU"].astype(str).str.strip()
     df_m = df_m[df_m["SKU"].notna() & (df_m["SKU"] != "") & (df_m["SKU"] != "nan")].copy()
 
+    duplicados = df_m["SKU"].duplicated().sum()
+    if duplicados > 0:
+        print(f"Advertencia: se encontraron {duplicados} SKUs duplicados. Se conservará el primero.")
+    df_m = df_m.drop_duplicates(subset=["SKU"], keep="first")
+
     productos = df_m[["SKU", "DESCRIPCIÓN", "LINEA", "COLOR", "TALLA", "COLECCIÓN", "FAMILIA"]].copy()
     productos = productos.rename(columns={
-        "SKU": "sku",
-        "DESCRIPCIÓN": "nombre",
-        "LINEA": "linea",
-        "COLOR": "color",
-        "TALLA": "talla",
-        "COLECCIÓN": "coleccion",
-        "FAMILIA": "familia"
+        "SKU": "sku", "DESCRIPCIÓN": "nombre", "LINEA": "linea",
+        "COLOR": "color", "TALLA": "talla", "COLECCIÓN": "coleccion", "FAMILIA": "familia"
     })
     productos["color"] = productos["color"].fillna("").astype(str).str.strip().str.upper()
     productos["talla"] = productos["talla"].fillna("").astype(str).str.strip().str.upper()
@@ -59,22 +60,12 @@ def main():
         DROP TABLE IF EXISTS productos CASCADE;
         DROP TABLE IF EXISTS stock_boutiques CASCADE;
         CREATE TABLE productos (
-            sku TEXT PRIMARY KEY,
-            nombre TEXT,
-            linea TEXT,
-            color TEXT,
-            talla TEXT,
-            coleccion TEXT,
-            familia TEXT,
-            stock_cedis INTEGER DEFAULT 0,
-            image_src TEXT,
-            visible_web BOOLEAN DEFAULT FALSE
+            sku TEXT PRIMARY KEY, nombre TEXT, linea TEXT, color TEXT, talla TEXT,
+            coleccion TEXT, familia TEXT, stock_cedis INTEGER DEFAULT 0,
+            image_src TEXT, visible_web BOOLEAN DEFAULT FALSE
         );
         CREATE TABLE stock_boutiques (
-            sku TEXT,
-            sucursal TEXT,
-            stock INTEGER DEFAULT 0,
-            PRIMARY KEY (sku, sucursal)
+            sku TEXT, sucursal TEXT, stock INTEGER DEFAULT 0, PRIMARY KEY (sku, sucursal)
         );
     """)
 
