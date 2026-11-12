@@ -6,6 +6,7 @@ on:
     paths:
       - 'existencias.csv'
       - 'lista_maestra.xlsx'
+  workflow_dispatch:
 
 jobs:
   update:
